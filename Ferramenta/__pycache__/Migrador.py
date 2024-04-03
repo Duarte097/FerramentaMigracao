@@ -45,7 +45,7 @@ class MigrationApp:
         
         self.listbox_tables = CTkListbox(self.tab1view2)
         self.listbox_tables.pack(fill="both", expand=True)
-        #self.listbox_tables.bind("<<ListboxSelect>>", self.show_table_data)
+        
         
         self.listbox_tables_mongo = CTkListbox(self.tab2view2)
         self.listbox_tables_mongo.pack(fill="both", expand=True)
@@ -59,27 +59,28 @@ class MigrationApp:
         #self.teste = ctk.CTkLabel(master=self.tab2view2, text='', image=self.icon)
         #self.teste.pack(padx=10,pady=10)
         
-        bg_color = self.root._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"])
-        text_color = self.root._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"])
-        selected_color = self.root._apply_appearance_mode(ctk.ThemeManager.theme["CTkButton"]["fg_color"])
+        bg_color = self.tab1view2._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"])
+        text_color = self.tab1view2._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"])
+        selected_color = self.tab1view2._apply_appearance_mode(ctk.ThemeManager.theme["CTkButton"]["fg_color"])
 
         treestyle = ttk.Style()
         treestyle.theme_use('default')
         treestyle.configure("Treeview", background=bg_color, foreground=text_color, fieldbackground=bg_color, borderwidth=0, font=("Arial Black", 14), padding=5, spacing=20)
         treestyle.map('Treeview', background=[('selected', bg_color)], foreground=[('selected', selected_color)])
-        self.root.bind("<<TreeviewSelect>>", lambda event: self.root.focus_set())
+        self.tab1view2.bind("<<TreeviewSelect>>", lambda event: self.tab1view2.focus_set())
 
         ##Treeview widget data
         self.treeview = ttk.Treeview(self.listbox_tables, height=30, show="tree")
         self.treeview.insert('', '0', 'i1', text ='MySQL')
+        self.treeview.bind("<ButtonRelease-1>", self.show_table_data)
         self.treeview.grid(padx=10)
         
         
         self.treeviewMongo = ttk.Treeview(self.listbox_tables_mongo, height=30, show="tree")
         self.treeviewMongo.insert('', '0', 'i1', text ='MongoDB')
+        self.treeviewMongo.bind("<ButtonRelease-1>", self.show_collection_data)
         self.treeviewMongo.grid(padx=10)
         
-        #dadwdawdawdadawdawdawd
         
         self.switch = ctk.CTkSwitch(self.tab,
                                     text=None,
@@ -177,42 +178,44 @@ class MigrationApp:
                 collections = db.list_collection_names()
                 for collection in collections:
                     self.treeviewMongo.insert('i1', 'end', text=collection)
-                    self.treeviewMongo.insert('i1', 'end', text='')
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         else:
             messagebox.showerror("Error", "Please connect to MongoDB first.")
 
-
-
-            
     def show_table_data(self, event):
-        selection = event.widget.curselection()
-        if selection:  
-            index = int(selection[0])  # Convertendo o índice para inteiro
-            table_name = event.widget.get(index)
-            data = self.retrieve_table_data(table_name)
-            if data:
-                self.terminal.delete("1.0", "end")
-                for row in data:
-                    self.terminal.insert("end", row)
-                    self.terminal.insert("end", "\n")
-        else:
-            messagebox.showinfo("Info", "No table selected.")
-
-
-
-    def retrieve_table_data(self, table_name):
+        item = self.treeview.selection()[0]  # Pegar o item selecionado na treeview
+        table_name = self.treeview.item(item, "text")  # Pegar o nome da tabela selecionada
         if hasattr(self, 'mysql_connection'):
             try:
                 cursor = self.mysql_connection.cursor()
-                cursor.execute(f"SELECT * FROM {table_name}")
-                return cursor.fetchall()
+                cursor.execute(f"SELECT * FROM {table_name}")  # Selecionar todos os dados da tabela
+                table_data = cursor.fetchall()  # Trazer todos os dados da tabela
+                self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
+                for row in table_data:
+                    self.terminal.insert('end', f"{row}\n")  # Mostrar os dados da tabela no terminal
+                cursor.close()
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         else:
             messagebox.showerror("Error", "Please connect to MySQL first.")
-
+            
+    def show_collection_data(self,event):
+        item = self.treeviewMongo.selection()[0]  # Pegar o item selecionado na treeview
+        collection_name = self.treeviewMongo.item(item, "text")  # Pegar o nome da coleção selecionada
+        if hasattr(self, 'mongo_client'):
+            try:
+                database_name = self.database_mongo.get()
+                db = self.mongo_client[database_name]
+                collection_data = db[collection_name].find()  # Buscar os documentos da coleção
+                self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
+                for document in collection_data:
+                    self.terminal.insert('end', f"{document}\n")  # Mostrar os documentos da coleção no terminal
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+        else:
+            messagebox.showerror("Error", "Please connect to MongoDB first.")
+            
     def menubar(self): 
         self.label_localhost = ctk.CTkLabel(self.tab1, text="Localhost:")
         self.label_localhost.place(relx=0.35, rely=0.2, anchor=tk.CENTER)
