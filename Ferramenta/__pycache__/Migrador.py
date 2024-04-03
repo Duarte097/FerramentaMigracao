@@ -2,13 +2,14 @@ import customtkinter as ctk
 from customtkinter import *
 import tkinter as tk
 from tkinter import ttk
+from tkinter import *
 import pymysql
 from pymongo import MongoClient
 import datetime
 from decimal import Decimal
 from tkinter import BooleanVar, messagebox
 from CTkListbox import *
-from PIL import Image,ImageTk
+from PIL import Image, ImageTk
 
 class MigrationApp:
     
@@ -56,8 +57,17 @@ class MigrationApp:
         #self.icon = tk.PhotoImage(resized_image)
         
         #self.icon = ctk.CTkImage(light_image=Image.open('mysql.png'), dark_image=Image.open('mysql.png'))
-        #self.teste = ctk.CTkLabel(master=self.tab2view2, text='', image=self.icon)
-        #self.teste.pack(padx=10,pady=10)
+        #self.icon = PhotoImage(file='mysql.png')
+        # Carregar a imagem do ícone do MySQL
+        self.icon = Image.open('mysql.png')
+        # Redimensionar a imagem para um tamanho adequado (por exemplo, 20x20 pixels)
+        self.icon = self.icon.resize((20, 20), Image.LANCZOS)
+        self.icon = ImageTk.PhotoImage(self.icon)
+        
+        self.iconmongo = Image.open('mongodb.png')
+        # Redimensionar a imagem para um tamanho adequado (por exemplo, 20x20 pixels)
+        self.iconmongo = self.iconmongo.resize((20, 20), Image.LANCZOS)
+        self.iconmongo = ImageTk.PhotoImage(self.iconmongo)
         
         bg_color = self.tab1view2._apply_appearance_mode(ctk.ThemeManager.theme["CTkFrame"]["fg_color"])
         text_color = self.tab1view2._apply_appearance_mode(ctk.ThemeManager.theme["CTkLabel"]["text_color"])
@@ -69,15 +79,18 @@ class MigrationApp:
         treestyle.map('Treeview', background=[('selected', bg_color)], foreground=[('selected', selected_color)])
         self.tab1view2.bind("<<TreeviewSelect>>", lambda event: self.tab1view2.focus_set())
 
+        
         ##Treeview widget data
-        self.treeview = ttk.Treeview(self.listbox_tables, height=30, show="tree")
-        self.treeview.insert('', '0', 'i1', text ='MySQL')
+        self.treeview = ttk.Treeview(self.listbox_tables, height=10, show="tree")
+        self.treeview.insert('', '0', 'i1', text ='MySQL', image=self.icon)
         self.treeview.bind("<ButtonRelease-1>", self.show_table_data)
         self.treeview.grid(padx=10)
+        #self.teste = ctk.CTkLabel(master=self.listbox_tables, text='', image=self.icon)
+        #self.teste.grid(padx=10)
         
         
-        self.treeviewMongo = ttk.Treeview(self.listbox_tables_mongo, height=30, show="tree")
-        self.treeviewMongo.insert('', '0', 'i1', text ='MongoDB')
+        self.treeviewMongo = ttk.Treeview(self.listbox_tables_mongo, height=10, show="tree")
+        self.treeviewMongo.insert('', '0', 'i1', text ='MongoDB', image=self.iconmongo)
         self.treeviewMongo.bind("<ButtonRelease-1>", self.show_collection_data)
         self.treeviewMongo.grid(padx=10)
         
@@ -222,10 +235,14 @@ class MigrationApp:
         self.localhost = ctk.CTkEntry(self.tab1, placeholder_text="Localhost")
         self.localhost.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
         
+        self.localhost.cget("localhost")
+        
         self.label_porta = ctk.CTkLabel(self.tab1, text="Porta:")
         self.label_porta.place(relx=0.35, rely=0.3, anchor=tk.CENTER)
         self.porta = ctk.CTkEntry(self.tab1, placeholder_text="Porta")
         self.porta.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
+        
+        self.porta = "3306"
         
         self.label_usuario = ctk.CTkLabel(self.tab1, text="Usuario:")
         self.label_usuario.place(relx=0.35, rely=0.4, anchor=tk.CENTER)
