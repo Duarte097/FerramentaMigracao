@@ -235,14 +235,12 @@ class MigrationApp:
         self.localhost = ctk.CTkEntry(self.tab1, placeholder_text="Localhost")
         self.localhost.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
         
-        self.localhost.cget("localhost")
         
         self.label_porta = ctk.CTkLabel(self.tab1, text="Porta:")
         self.label_porta.place(relx=0.35, rely=0.3, anchor=tk.CENTER)
         self.porta = ctk.CTkEntry(self.tab1, placeholder_text="Porta")
         self.porta.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
         
-        self.porta = "3306"
         
         self.label_usuario = ctk.CTkLabel(self.tab1, text="Usuario:")
         self.label_usuario.place(relx=0.35, rely=0.4, anchor=tk.CENTER)
