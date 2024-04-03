@@ -21,11 +21,6 @@ class MigrationApp:
         
         ctk.set_appearance_mode("dark")
 
-        #self.tabview = ctk.CTkTabview(master=self.root)
-        #self.tabview.pack(side="top", fill="both", expand=True)
-        
-        #self.tabviewschema = ctk.CTkTabview(master=self.root)
-        #self.tabviewschema.pack(side="left", expand=False, anchor="w")
         master_frame = ctk.CTkFrame(self.root)
         master_frame.pack(fill="both", expand=True)
         
@@ -51,15 +46,8 @@ class MigrationApp:
         self.listbox_tables_mongo = CTkListbox(self.tab2view2)
         self.listbox_tables_mongo.pack(fill="both", expand=True)
         
-        #self.img= (Image.open("mysql.png"))
-        
-        #resized_image= self.img.resize((300,205), Image.ANTIALIAS)
-        #self.icon = tk.PhotoImage(resized_image)
-        
-        #self.icon = ctk.CTkImage(light_image=Image.open('mysql.png'), dark_image=Image.open('mysql.png'))
-        #self.icon = PhotoImage(file='mysql.png')
-        # Carregar a imagem do ícone do MySQL
         self.icon = Image.open('mysql.png')
+        
         # Redimensionar a imagem para um tamanho adequado (por exemplo, 20x20 pixels)
         self.icon = self.icon.resize((20, 20), Image.LANCZOS)
         self.icon = ImageTk.PhotoImage(self.icon)
@@ -85,10 +73,7 @@ class MigrationApp:
         self.treeview.insert('', '0', 'i1', text ='MySQL', image=self.icon)
         self.treeview.bind("<ButtonRelease-1>", self.show_table_data)
         self.treeview.grid(padx=10)
-        #self.teste = ctk.CTkLabel(master=self.listbox_tables, text='', image=self.icon)
-        #self.teste.grid(padx=10)
-        
-        
+
         self.treeviewMongo = ttk.Treeview(self.listbox_tables_mongo, height=10, show="tree")
         self.treeviewMongo.insert('', '0', 'i1', text ='MongoDB', image=self.iconmongo)
         self.treeviewMongo.bind("<ButtonRelease-1>", self.show_collection_data)
@@ -113,8 +98,6 @@ class MigrationApp:
         self.migrate_mysql_to_mongo_button = ctk.CTkButton(self.tab, text="Iniciar", command=self.mudarcor)
         self.migrate_mysql_to_mongo_button.pack(side="right", padx=10, pady=10)
         
-        #self.migrate_mongo_to_mysql_button = ctk.CTkButton(self.tab, text="Iniciar", command=self.migrate_mongo_to_mysql)
-        #self.migrate_mongo_to_mysql_button.pack(side="right", padx=10, pady=10)
         
         self.btlimpar = ctk.CTkButton(master=self.tab, text="Limpar", command=self.limpar)
         self.btlimpar.pack(side="left", padx=10, pady=10)
@@ -205,15 +188,21 @@ class MigrationApp:
                 cursor.execute(f"SELECT * FROM {table_name}")  # Selecionar todos os dados da tabela
                 table_data = cursor.fetchall()  # Trazer todos os dados da tabela
                 self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
+                
+                # Formatar os dados da tabela no terminal
+                self.terminal.insert('end', '{\n')
                 for row in table_data:
-                    self.terminal.insert('end', f"{row}\n")  # Mostrar os dados da tabela no terminal
+                    formatted_row = '\t\t\t'.join(str(value) for value in row)  # Formatar cada linha com os valores separados por tabulação
+                    self.terminal.insert('end', f"\t{formatted_row}\n")  # Adicionar a linha formatada no terminal
+                self.terminal.insert('end', '}\n')
+
                 cursor.close()
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         else:
             messagebox.showerror("Error", "Please connect to MySQL first.")
             
-    def show_collection_data(self,event):
+    def show_collection_data(self, _=None):  # Adicione um argumento padrão para o evento Tkinter
         item = self.treeviewMongo.selection()[0]  # Pegar o item selecionado na treeview
         collection_name = self.treeviewMongo.item(item, "text")  # Pegar o nome da coleção selecionada
         if hasattr(self, 'mongo_client'):
@@ -223,7 +212,9 @@ class MigrationApp:
                 collection_data = db[collection_name].find()  # Buscar os documentos da coleção
                 self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
                 for document in collection_data:
-                    self.terminal.insert('end', f"{document}\n")  # Mostrar os documentos da coleção no terminal
+                    formatted_document = "{" + ''.join(f'\n    "{key}": {value},' for key, value in document.items()) + "\n}"
+                    self.terminal.insert('end', f"{formatted_document}\n") 
+                    # Mostrar os documentos da coleção no terminal
             except Exception as e:
                 messagebox.showerror("Error", str(e))
         else:
@@ -355,6 +346,7 @@ class MigrationApp:
         mysql_db = self.database.get()
         self.mongo_db = self.mongo_client[mysql_db]
         cursor = self.mysql_connection.cursor()
+        cursor.execute("DROP TABLE IF EXIST '{mysql_db}'")
         cursor.execute("SHOW TABLES")
         tables = cursor.fetchall()
         
@@ -371,6 +363,7 @@ class MigrationApp:
             self.root.update_idletasks()
         
         self.terminal.insert("end", "Migração feita com sucesso!!.\n")
+        self.list_mongo_collections()
         messagebox.showinfo("","Migração feita com sucesso!!")
 
     
@@ -487,7 +480,7 @@ class MigrationApp:
 
                         sql = f"INSERT INTO {collection_name} ({columns}) VALUES ({values_str})"
                         cursor.execute(sql)
-                        print("end",f"Inserted document into MySQL table '{collection_name}'")
+                        self.terminal.insert("end",f"Inserted document into MySQL table '{collection_name}'")
 
                     current_collection += 1
                     progress_percent = (current_collection / total_collections) * 100
@@ -498,6 +491,7 @@ class MigrationApp:
                 self.mysql_connection.commit()
                 self.terminal.insert("end","Data migration from MongoDB to MySQL completed.")
                 messagebox.showinfo("","Migração feita com sucesso!!")
+                self.list_mysql_tables()
             else:
                 messagebox.showerror("Error", "Please connect to MySQL and MongoDB.")
         except Exception as e:
