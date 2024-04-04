@@ -39,11 +39,11 @@ class MigrationApp:
         self.tab1view2 = self.tabviewschema.add("MysqlSchema")
         self.tab2view2 = self.tabviewschema.add("MongoDBSchema")
         
-        self.listbox_tables = CTkListbox(self.tab1view2)
+        self.listbox_tables = CTkListbox(self.tab1view2, border_width=5)
         self.listbox_tables.pack(fill="both", expand=True)
         
         
-        self.listbox_tables_mongo = CTkListbox(self.tab2view2)
+        self.listbox_tables_mongo = CTkListbox(self.tab2view2, border_width=5)
         self.listbox_tables_mongo.pack(fill="both", expand=True)
         
         self.icon = Image.open('mysql.png')
@@ -91,7 +91,7 @@ class MigrationApp:
         self.text_switch = ctk.CTkLabel(self.tab, text="")
         self.text_switch.pack(side="top", padx=1, pady=1, anchor="w")
         
-        self.terminal = ctk.CTkTextbox(self.tab, wrap="word")
+        self.terminal = ctk.CTkTextbox(self.tab, wrap="word", border_width=5)
         self.terminal.pack(fill="both", expand=True)
     
         
@@ -198,7 +198,8 @@ class MigrationApp:
 
                 cursor.close()
             except Exception as e:
-                messagebox.showerror("Error", str(e))
+                print("")
+                #messagebox.showerror("Error", str(e))
         else:
             messagebox.showerror("Error", "Please connect to MySQL first.")
             
