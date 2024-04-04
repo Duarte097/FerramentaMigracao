@@ -346,7 +346,6 @@ class MigrationApp:
         mysql_db = self.database.get()
         self.mongo_db = self.mongo_client[mysql_db]
         cursor = self.mysql_connection.cursor()
-        cursor.execute("DROP TABLE IF EXIST '{mysql_db}'")
         cursor.execute("SHOW TABLES")
         tables = cursor.fetchall()
         
