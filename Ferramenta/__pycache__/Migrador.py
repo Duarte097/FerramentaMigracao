@@ -7,9 +7,11 @@ import pymysql
 from pymongo import MongoClient
 import datetime
 from decimal import Decimal
-from tkinter import BooleanVar, messagebox
+from tkinter import messagebox
 from CTkListbox import *
 from PIL import Image, ImageTk
+from tabulate import tabulate
+
 
 class MigrationApp:
     
@@ -21,6 +23,13 @@ class MigrationApp:
         #self.root.attributes('-fullscreen', True)
         self.root.title("Ferramenta Migradora")
 
+                # Valores padrão para MySQL
+        self.default_mysql_host = "localhost"
+        self.default_mysql_port = "3306"
+
+        # Valores padrão para MongoDB
+        self.default_mongo_host = "localhost"
+        self.default_mongo_port = "27017"
         
         ctk.set_appearance_mode("dark")
 
@@ -199,15 +208,26 @@ class MigrationApp:
                 cursor = self.mysql_connection.cursor()
                 cursor.execute(f"SELECT * FROM {table_name}")  # Selecionar todos os dados da tabela
                 table_data = cursor.fetchall()  # Trazer todos os dados da tabela
-                self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
                 
-                # Formatar os dados da tabela no terminal
-                self.terminal.insert('end', '{\n')
-                for row in table_data:
-                    formatted_row = '\t\t\t'.join(str(value) for value in row)  # Formatar cada linha com os valores separados por tabulação
-                    self.terminal.insert('end', f"\t{formatted_row}\n")  # Adicionar a linha formatada no terminal
-                self.terminal.insert('end', '}\n')
-
+                # Obter nomes das colunas
+                column_names = [column[0] for column in cursor.description]
+                
+                # Montar os dados da tabela em formato de lista
+                data_list = [list(row) for row in table_data]
+                
+                # Definir o espaçamento adicional entre as colunas
+                colalign = ["left"] * len(column_names)  # Alinhamento padrão
+                colspacing = [10] * len(column_names)  # Espaçamento entre as colunas
+                # Use uma tupla de tuplas para especificar os valores de espaçamento para cada coluna
+                colalign_spacing = list(zip(colalign, colspacing))
+                
+                # Adicionar cabeçalho da coluna e definir o espaçamento
+                formatted_data = tabulate(data_list, headers=column_names, tablefmt="psql", colalign=colalign_spacing)
+                
+                # Exibir a tabela no terminal
+                self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
+                self.terminal.insert('end', formatted_data)
+                
                 cursor.close()
             except Exception as e:
                 print("")
@@ -225,7 +245,7 @@ class MigrationApp:
                 collection_data = db[collection_name].find()  # Buscar os documentos da coleção
                 self.terminal.delete('1.0', 'end')  # Limpar o terminal antes de mostrar os novos dados
                 for document in collection_data:
-                    formatted_document = "{" + ''.join(f'\n    "{key}": {value},' for key, value in document.items()) + "\n}"
+                    formatted_document = "{" + ''.join(f'\n    "{key}": {value},' for key, value in document.items()) + "\n}\n"
                     self.terminal.insert('end', f"{formatted_document}\n") 
                     # Mostrar os documentos da coleção no terminal
             except Exception as e:
@@ -237,12 +257,14 @@ class MigrationApp:
         self.label_localhost = ctk.CTkLabel(self.tab1, text="Localhost:")
         self.label_localhost.place(relx=0.35, rely=0.2, anchor=tk.CENTER)
         self.localhost = ctk.CTkEntry(self.tab1, placeholder_text="Localhost")
+        self.localhost.insert(0, self.default_mysql_host)
         self.localhost.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
         
         
         self.label_porta = ctk.CTkLabel(self.tab1, text="Porta:")
         self.label_porta.place(relx=0.35, rely=0.3, anchor=tk.CENTER)
         self.porta = ctk.CTkEntry(self.tab1, placeholder_text="Porta")
+        self.porta.insert(0, self.default_mysql_port)
         self.porta.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
         
         
@@ -267,11 +289,13 @@ class MigrationApp:
         self.label_localhost_mongo = ctk.CTkLabel(self.tab2, text="Localhost:")
         self.label_localhost_mongo.place(relx=0.35, rely=0.2, anchor=tk.CENTER)
         self.localhost_mongo = ctk.CTkEntry(self.tab2, placeholder_text="Localhost")
+        self.localhost_mongo.insert(0, self.default_mongo_host)
         self.localhost_mongo.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
         
         self.label_porta_mongo = ctk.CTkLabel(self.tab2, text="Porta:")
         self.label_porta_mongo.place(relx=0.35, rely=0.3, anchor=tk.CENTER)
         self.porta_mongo = ctk.CTkEntry(self.tab2, placeholder_text="Porta")
+        self.porta_mongo.insert(0, self.default_mongo_port)
         self.porta_mongo.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
         
         self.label_usuario_mongo = ctk.CTkLabel(self.tab2, text="Usuario:")
