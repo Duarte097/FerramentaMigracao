@@ -15,7 +15,10 @@ class MigrationApp:
     
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.geometry("800x500")
+        self.root.geometry("1000x500")
+        #self.root.state('zoomed')
+        #self.root.bind('<Configure>', self.on_resize)
+        #self.root.attributes('-fullscreen', True)
         self.root.title("Ferramenta Migradora")
 
         
@@ -38,6 +41,14 @@ class MigrationApp:
         
         self.tab1view2 = self.tabviewschema.add("MysqlSchema")
         self.tab2view2 = self.tabviewschema.add("MongoDBSchema")
+        
+        self.iconresetar = Image.open('atualizar.png')
+        self.iconresetar = self.iconresetar.resize((45, 45), Image.LANCZOS)
+        self.iconresetar = ImageTk.PhotoImage(self.iconresetar)
+        
+        self.resetar = ctk.CTkButton(master=self.tab, text='', image=self.iconresetar, command=self.atualizar,
+                                     height=5, width=5, fg_color="transparent", hover_color="#2F4F4F")
+        self.resetar.pack(side="right", padx=0, pady=0, anchor="ne")
         
         self.listbox_tables = CTkListbox(self.tab1view2, border_width=5)
         self.listbox_tables.pack(fill="both", expand=True)
@@ -78,7 +89,7 @@ class MigrationApp:
         self.treeviewMongo.insert('', '0', 'i1', text ='MongoDB', image=self.iconmongo)
         self.treeviewMongo.bind("<ButtonRelease-1>", self.show_collection_data)
         self.treeviewMongo.grid(padx=10)
-        
+
         
         self.switch = ctk.CTkSwitch(self.tab,
                                     text=None,
@@ -87,7 +98,8 @@ class MigrationApp:
                                     onvalue=True,
                                     offvalue=False)
         self.switch.pack(side="top", padx=1, pady=1, anchor="w")
-            
+
+        
         self.text_switch = ctk.CTkLabel(self.tab, text="")
         self.text_switch.pack(side="top", padx=1, pady=1, anchor="w")
         
@@ -286,6 +298,10 @@ class MigrationApp:
     def limpar(self):
         self.terminal.delete("1.0",ctk.END)
         self.progress.set(0)
+        
+    def atualizar(self):
+        self.list_mysql_tables()
+        self.list_mongo_collections()
     
     def conectar_mysql(self):
         mysql_host = self.localhost.get()
@@ -412,41 +428,43 @@ class MigrationApp:
 
         for collection_name in mongo_db.list_collection_names():
             collection = mongo_db[collection_name]
-            sample_document = collection.find_one()
-
-            # Verifica se a tabela já existe
-            cursor.execute(f"SHOW TABLES LIKE '{collection_name}'")
-            existing_tables = cursor.fetchall()
+            # Procura por um documento com valores não nulos
+            sample_document = None
+            for document in collection.find():
+                if any(value is not None for value in document.values()):
+                    sample_document = document
+                    break
             
             if sample_document: 
-                if not existing_tables:
-                    # Remove a coluna _id
-                    sample_document.pop('_id', None)
+                # Remove a coluna _id
+                sample_document.pop('_id', None)
 
-                    # Analisa os tipos de dados das colunas
-                    columns = {}
-                    for key, value in sample_document.items():
-                        if isinstance(value, int):
-                            columns[key] = "INT"
-                        elif isinstance(value, float):
-                            columns[key] = "FLOAT"
-                        elif isinstance(value, str):
-                            columns[key] = "VARCHAR(255)"
-                        elif isinstance(value, bool):
-                            columns[key] = "BOOLEAN"
-                        elif isinstance(value, datetime.datetime):
-                            columns[key] = "DATETIME"
-                        # Adicione mais tipos de dados conforme necessário
+                # Analisa os tipos de dados das colunas
+                columns = {}
+                for key, value in sample_document.items():
+                    if isinstance(value, int):
+                        columns[key] = "INT"
+                    elif isinstance(value, float):
+                        columns[key] = "FLOAT"
+                    elif isinstance(value, str):
+                        columns[key] = "VARCHAR(255)"
+                    elif isinstance(value, bool):
+                        columns[key] = "BOOLEAN"
+                    elif isinstance(value, datetime.datetime):
+                        columns[key] = "DATETIME"
+                    else: 
+                        columns[key] = "VARCHAR(255)"
+                    # Adicione mais tipos de dados conforme necessário
 
-                    # Adiciona o campo id e define como PRIMARY KEY se o nome da tabela for igual ao nome da coluna
-                    if '_id' in sample_document:
-                        columns['_id'] = "INT PRIMARY KEY AUTO_INCREMENT"
+                # Adiciona o campo id e define como PRIMARY KEY se o nome da tabela for igual ao nome da coluna
+                if '_id' in sample_document:
+                    columns['_id'] = "INT PRIMARY KEY AUTO_INCREMENT"
 
-                    # Criação da tabela no MySQL se ela não existir
-                    columns_sql = ", ".join([f"{column} {datatype}" for column, datatype in columns.items()])
-                    sql = f"CREATE TABLE {collection_name} ({columns_sql})"
-                    cursor.execute(sql)
-                    print(f"Created MySQL table '{collection_name}'")
+                # Criação da tabela no MySQL se ela não existir
+                columns_sql = ", ".join([f"{column} {datatype}" for column, datatype in columns.items()])
+                sql = f"CREATE TABLE {collection_name} ({columns_sql})"
+                cursor.execute(sql)
+                print(f"Created MySQL table '{collection_name}'")
 
         cursor.close()
 
