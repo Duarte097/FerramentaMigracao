@@ -437,7 +437,7 @@ class MigrationApp:
             
             if sample_document: 
                 # Remove a coluna _id
-                sample_document.pop('_id', None)
+                sample_document.pop('_id')
 
                 # Analisa os tipos de dados das colunas
                 columns = {}
@@ -483,7 +483,7 @@ class MigrationApp:
                     collection = mongo_db[collection_name]
 
                     for document in collection.find():
-                        document.pop('_id', None)
+                        document.pop('_id')
                         values = []
                         for value in document.values():
                             if isinstance(value, str):
@@ -494,11 +494,18 @@ class MigrationApp:
                                 values.append(str(value))
 
                         columns = ", ".join(document.keys())
+                        print(document)
                         values_str = ", ".join(values)
+                        valor_simbolico = 0
+                        # Verifica se algum valor na lista 'values' é 'None' ou 'null'
+                        if any(value == 'None' for value in values) or any(value == 'null' for value in values):
+                            # Substitui todos os valores 'None' ou 'null' por um valor simbólico (0)
+                            values_str = ", ".join([str(valor_simbolico) if valor == 'None' or valor == 'null' else valor for valor in values])
 
                         sql = f"INSERT INTO {collection_name} ({columns}) VALUES ({values_str})"
                         cursor.execute(sql)
-                        self.terminal.insert("end",f"Inserted document into MySQL table '{collection_name}'")
+                        self.terminal.insert("end", f"Inserted document into MySQL table '{collection_name}'")
+
 
                     current_collection += 1
                     progress_percent = (current_collection / total_collections) * 100
