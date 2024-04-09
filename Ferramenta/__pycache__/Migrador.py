@@ -18,12 +18,9 @@ class MigrationApp:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.geometry("1000x500")
-        #self.root.state('zoomed')
-        #self.root.bind('<Configure>', self.on_resize)
-        #self.root.attributes('-fullscreen', True)
         self.root.title("Ferramenta Migradora")
 
-                # Valores padrão para MySQL
+        # Valores padrão para MySQL
         self.default_mysql_host = "localhost"
         self.default_mysql_port = "3306"
 
@@ -51,6 +48,9 @@ class MigrationApp:
         self.tab1view2 = self.tabviewschema.add("MysqlSchema")
         self.tab2view2 = self.tabviewschema.add("MongoDBSchema")
         
+        self.tabview2()  
+        
+        '''
         self.iconresetar = Image.open('atualizar.png')
         self.iconresetar = self.iconresetar.resize((45, 45), Image.LANCZOS)
         self.iconresetar = ImageTk.PhotoImage(self.iconresetar)
@@ -58,7 +58,44 @@ class MigrationApp:
         self.resetar = ctk.CTkButton(master=self.tab, text='', image=self.iconresetar, command=self.atualizar,
                                      height=5, width=5, fg_color="transparent", hover_color="#2F4F4F")
         self.resetar.pack(side="right", padx=0, pady=0, anchor="ne")
+        '''
         
+        self.switch = ctk.CTkSwitch(self.tab,
+                                    text=None,
+                                    variable=self.switch_state,
+                                    command=self.change_color,
+                                    onvalue=True,
+                                    offvalue=False)
+        self.switch.pack(side="top", padx=1, pady=1, anchor="w")
+
+        
+        self.text_switch = ctk.CTkLabel(self.tab, text="")
+        self.text_switch.pack(side="top", padx=1, pady=1, anchor="w")
+        
+        self.terminal = ctk.CTkTextbox(self.tab, wrap="word", border_width=5)
+        self.terminal.pack(fill="both", expand=True)
+    
+        
+        self.migrate_mysql_to_mongo_button = ctk.CTkButton(self.tab, text="Iniciar", command=self.mudarcor)
+        self.migrate_mysql_to_mongo_button.pack(side="right", padx=10, pady=10)
+        
+        self.btlimpar = ctk.CTkButton(master=self.tab, text="Limpar", command=self.limpar)
+        self.btlimpar.pack(side="left", padx=10, pady=10)
+        
+        self.progress = ctk.CTkProgressBar(master=self.tab,width=200,height=20,border_width=5)
+        self.progress.pack(side="bottom", padx=10, pady=10)
+        
+        
+        self.progress.set(0)
+        
+        self.change_color() 
+        
+        self.menubar()  
+        
+        self.root.mainloop()
+        
+        
+    def tabview2(self):
         self.listbox_tables = CTkListbox(self.tab1view2, border_width=5)
         self.listbox_tables.pack(fill="both", expand=True)
         
@@ -86,7 +123,6 @@ class MigrationApp:
         treestyle.configure("Treeview", background=bg_color, foreground=text_color, fieldbackground=bg_color, borderwidth=0, font=("Arial Black", 14), padding=5, spacing=20)
         treestyle.map('Treeview', background=[('selected', bg_color)], foreground=[('selected', selected_color)])
         self.tab1view2.bind("<<TreeviewSelect>>", lambda event: self.tab1view2.focus_set())
-
         
         ##Treeview widget data
         self.treeview = ttk.Treeview(self.listbox_tables, height=10, show="tree")
@@ -99,49 +135,13 @@ class MigrationApp:
         self.treeviewMongo.bind("<ButtonRelease-1>", self.show_collection_data)
         self.treeviewMongo.grid(padx=10)
 
-        
-        self.switch = ctk.CTkSwitch(self.tab,
-                                    text=None,
-                                    variable=self.switch_state,
-                                    command=self.change_color,
-                                    onvalue=True,
-                                    offvalue=False)
-        self.switch.pack(side="top", padx=1, pady=1, anchor="w")
-
-        
-        self.text_switch = ctk.CTkLabel(self.tab, text="")
-        self.text_switch.pack(side="top", padx=1, pady=1, anchor="w")
-        
-        self.terminal = ctk.CTkTextbox(self.tab, wrap="word", border_width=5)
-        self.terminal.pack(fill="both", expand=True)
-    
-        
-        self.migrate_mysql_to_mongo_button = ctk.CTkButton(self.tab, text="Iniciar", command=self.mudarcor)
-        self.migrate_mysql_to_mongo_button.pack(side="right", padx=10, pady=10)
-        
-        
-        self.btlimpar = ctk.CTkButton(master=self.tab, text="Limpar", command=self.limpar)
-        self.btlimpar.pack(side="left", padx=10, pady=10)
-        
-        self.progress = ctk.CTkProgressBar(master=self.tab,width=200,height=20,border_width=5)
-        self.progress.pack(side="bottom", padx=10, pady=10)
-        
-        
-        self.progress.set(0)
-        
-        self.change_color() 
-        
-        self.menubar()  
-        
-        self.root.mainloop()
-        
 
     def mudarcor(self):
         if self.background == "mysql":
             self.compile_and_migrate_data()
         else:
             self.migrate_mongo_to_mysql()
-            
+    
     
     def change_color(self):
         print("Switch state:", self.switch_state.get())  # Debugging
@@ -234,6 +234,7 @@ class MigrationApp:
                 #messagebox.showerror("Error", str(e))
         else:
             messagebox.showerror("Error", "Please connect to MySQL first.")
+            
             
     def show_collection_data(self, _=None):  # Adicione um argumento padrão para o evento Tkinter
         item = self.treeviewMongo.selection()[0]  # Pegar o item selecionado na treeview
@@ -372,6 +373,7 @@ class MigrationApp:
         except Exception as e:
             messagebox.showerror("Error", str(e))
             
+            
     #MIGRAÇÃO MYSQL PARA MONGODB
     def compile_and_migrate_data(self):
         try:
@@ -432,6 +434,7 @@ class MigrationApp:
         if isinstance(value, datetime.date):
             return datetime.datetime(value.year, value.month, value.day)
         return value
+    
 
     #MIGRAÇÃO MONGO PARA MYSQL
     def migrate_mongo_to_mysql(self):
@@ -443,6 +446,7 @@ class MigrationApp:
                 messagebox.showerror("Erro", "Por favor conecte ao MySQL e MongoDB.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+            
             
     def create_mysql_tables_from_mongodb_schema(self):
         mongo_db_name = self.database_mongo.get()
