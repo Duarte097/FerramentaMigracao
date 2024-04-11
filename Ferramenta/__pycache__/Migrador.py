@@ -427,7 +427,7 @@ class MigrationApp:
                 
     def decimal_to_string(self, value):
         if isinstance(value, Decimal):
-            return str(value)
+            return float(value)
         return value
     
     def date_to_datetime(self, value):
