@@ -441,7 +441,7 @@ class MigrationApp:
         try:
             if hasattr(self, 'mysql_connection') and hasattr(self, 'mongo_client'):
                 self.create_mysql_tables_from_mongodb_schema()
-                self.migrate_data_from_mongodb_to_mysql()
+                self.migrate_data_from_mongodb_to_mysql(self.collection)
             else:
                 messagebox.showerror("Erro", "Por favor conecte ao MySQL e MongoDB.")
         except Exception as e:
@@ -455,55 +455,63 @@ class MigrationApp:
         cursor = self.mysql_connection.cursor()
 
         for collection_name in mongo_db.list_collection_names():
-            collection = mongo_db[collection_name]
-            # Procura por um documento com valores não nulos
-            sample_document = None
-            for document in collection.find():
-                if any(value is not None for value in document.values()):
-                    sample_document = document
-                    break
-            
-            if sample_document: 
-                # Remove a coluna _id
-                sample_document.pop('_id')
+            self.collection = mongo_db[collection_name]
+            cursor.execute(f"SHOW TABLES LIKE '{collection_name}'")
+            table_exists = cursor.fetchone()
+            if not table_exists:
+                # Procura por um documento com valores não nulos
+                sample_document = None
+                for document in self.collection.find():
+                    if any(value is not None for value in document.values()):
+                        sample_document = document
+                        break
+                
+                if sample_document: 
+                    # Remove a coluna _id
+                    sample_document.pop('_id')
 
-                # Analisa os tipos de dados das colunas
-                columns = {}
-                for key, value in sample_document.items():
-                    if isinstance(value, int):
-                        columns[key] = "INT"
-                    elif isinstance(value, float):
-                        columns[key] = "FLOAT"
-                    elif isinstance(value, str):
-                        columns[key] = "VARCHAR(255)"
-                    elif isinstance(value, bool):
-                        columns[key] = "BOOLEAN"
-                    elif isinstance(value, datetime.datetime):
-                        columns[key] = "DATETIME"
-                    else: 
-                        columns[key] = "VARCHAR(255)"
-                    # Adicione mais tipos de dados conforme necessário
-
-                # Adiciona o campo id e define como PRIMARY KEY se o nome da tabela for igual ao nome da coluna
-                if '_id' in sample_document:
-                    columns['_id'] = "INT PRIMARY KEY AUTO_INCREMENT"
+                    # Analisa os tipos de dados das colunas
+                    columns = {}
+                    for key, value in sample_document.items():
+                        if isinstance(value, int):
+                            columns[key] = "INT"
+                        elif isinstance(value, float):
+                            columns[key] = "FLOAT"
+                        elif isinstance(value, str):
+                            columns[key] = "VARCHAR(255)"
+                        elif isinstance(value, bool):
+                            columns[key] = "BOOLEAN"
+                        elif isinstance(value, datetime.datetime):
+                            columns[key] = "DATETIME"
+                        else: 
+                            columns[key] = "VARCHAR(255)"
+                        # Adicione mais tipos de dados conforme necessário
 
                 # Criação da tabela no MySQL se ela não existir
                 columns_sql = ", ".join([f"{column} {datatype}" for column, datatype in columns.items()])
-                sql = f"CREATE TABLE {collection_name} ({columns_sql})"
+                sql = f"CREATE TABLE IF NOT EXISTS {collection_name} ({columns_sql})"
                 cursor.execute(sql)
                 print(f"Created MySQL table '{collection_name}'")
+                if 'id_' in sample_document and 'id_' + collection_name == collection_name.replace(" ", "_"):
+                    columns['id_'] = "INT PRIMARY KEY AUTO_INCREMENT"
+                    print(f"Adding 'id_' field as PRIMARY KEY AUTO_INCREMENT for table '{collection_name}'")
+                else: 
+                    columns['id_'] = "INT"
+                    print(f"Creating 'id_' field as INT for table '{collection_name}'")
+            else:
+                self.migrate_data_from_mongodb_to_mysql(self.collection)
 
         cursor.close()
 
                 
-    def migrate_data_from_mongodb_to_mysql(self):
+    def migrate_data_from_mongodb_to_mysql(self, collection):
         try:
             if hasattr(self, 'mysql_connection') and hasattr(self, 'mongo_client'):
                 mysql_db_name = self.database_mongo.get()
                 mongo_db = self.mongo_client[mysql_db_name]
 
                 cursor = self.mysql_connection.cursor()
+                cursor.execute("SET FOREIGN_KEY_CHECKS = 0;") 
                 total_collections = len(mongo_db.list_collection_names())
                 current_collection = 0
 
@@ -534,7 +542,7 @@ class MigrationApp:
                         cursor.execute(sql)
                         self.terminal.insert("end", f"Inserted document into MySQL table '{collection_name}'")
 
-
+                    cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")  
                     current_collection += 1
                     progress_percent = (current_collection / total_collections) * 100
                     self.progress.set(progress_percent)
