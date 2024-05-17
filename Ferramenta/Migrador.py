@@ -28,7 +28,7 @@ class MigrationApp:
         self.default_mongo_host = "localhost"
         self.default_mongo_port = "27017"
         
-        ctk.set_appearance_mode("dark")
+        #ctk.set_appearance_mode("dark")
 
         master_frame = ctk.CTkFrame(self.root)
         master_frame.pack(fill="both", expand=True)
